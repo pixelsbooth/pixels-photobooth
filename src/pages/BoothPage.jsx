@@ -1,0 +1,238 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Camera, Video, Image } from 'lucide-react';
+import PreviewModal from '../components/PreviewModal';
+import CountdownTimer from '../components/CountdownTimer';
+import VideoRecorder from '../components/VideoRecorder';
+import { applyOverlay } from '../utils/canvasUtils';
+import { supabase } from '../lib/supabaseClient';
+
+const BoothPage = ({ onNavigateToShare, onNavigateToAdmin }) => {
+  const [mode, setMode] = useState('photo');
+  const [stream, setStream] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (mode === 'photo') {
+      startCamera();
+    }
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [mode]);
+
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          width: 1280, 
+          height: 720,
+          facingMode: 'user'
+        }
+      });
+      setStream(mediaStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+    }
+  };
+
+  const capturePhoto = () => {
+    setShowCountdown(true);
+  };
+
+  const performPhotoCapture = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    const imageData = canvas.toDataURL('image/jpeg', 0.9);
+    setCapturedImage(imageData);
+    setShowPreview(true);
+    setShowCountdown(false);
+  };
+
+  const handleRetake = () => {
+    setShowPreview(false);
+    setCapturedImage(null);
+  };
+
+  const handleShare = async () => {
+    if (!capturedImage) return;
+
+    setIsUploading(true);
+    try {
+      // Apply overlay to the captured image
+      const overlayedImage = await applyOverlay(capturedImage);
+      
+      // Convert to blob for upload
+      const response = await fetch(overlayedImage);
+      const blob = await response.blob();
+      
+      // Upload to Supabase
+      const fileName = `photo-${Date.now()}.jpg`;
+      const { data, error } = await supabase.storage
+        .from('photos')
+        .upload(fileName, blob);
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('photos')
+        .getPublicUrl(fileName);
+
+      // Save photo record to database
+      await supabase.from('photos').insert({
+        filename: fileName,
+        public_url: urlData.publicUrl,
+        created_at: new Date().toISOString()
+      });
+
+      onNavigateToShare(overlayedImage, urlData.publicUrl);
+    } catch (error) {
+      console.error('Error sharing photo:', error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleVideoRecorded = async (videoBlob, videoUrl) => {
+    setIsUploading(true);
+    try {
+      // Upload video to Supabase
+      const fileName = `video-${Date.now()}.webm`;
+      const { data, error } = await supabase.storage
+        .from('videos')
+        .upload(fileName, videoBlob);
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('videos')
+        .getPublicUrl(fileName);
+
+      // Save video record to database
+      await supabase.from('videos').insert({
+        filename: fileName,
+        public_url: urlData.publicUrl,
+        created_at: new Date().toISOString()
+      });
+
+      onNavigateToShare(videoUrl, urlData.publicUrl);
+    } catch (error) {
+      console.error('Error sharing video:', error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      <header className="p-4 flex justify-between items-center">
+        <h1 className="text-2xl font-bold">PixelBooth Lite</h1>
+        <div className="flex items-center gap-4">
+          <div className="flex bg-gray-800 rounded-lg p-1">
+            <button
+              onClick={() => setMode('photo')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+                mode === 'photo' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Image size={16} />
+              Photo
+            </button>
+            <button
+              onClick={() => setMode('video')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+                mode === 'video' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Video size={16} />
+              Video
+            </button>
+          </div>
+        </div>
+        <button
+          onClick={onNavigateToAdmin}
+          className="text-sm text-gray-400 hover:text-white"
+        >
+          Admin
+        </button>
+      </header>
+
+      <div className="flex-1 flex items-center justify-center p-4">
+        {mode === 'photo' ? (
+          <div className="relative">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="rounded-lg max-w-full max-h-[60vh] object-cover"
+            />
+            <canvas
+              ref={canvasRef}
+              className="hidden"
+            />
+          </div>
+        ) : (
+          <VideoRecorder 
+            onRecordingComplete={handleVideoRecorded}
+            maxDuration={30}
+          />
+        )}
+      </div>
+
+      {mode === 'photo' && (
+        <div className="p-6 flex justify-center">
+          <button
+            onClick={capturePhoto}
+            disabled={!stream || isUploading}
+            className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white rounded-full p-6 shadow-lg transition-colors"
+          >
+            <Camera size={32} />
+          </button>
+        </div>
+      )}
+
+      {showCountdown && (
+        <CountdownTimer
+          initialCount={3}
+          onCountdownEnd={performPhotoCapture}
+        />
+      )}
+
+      {showPreview && (
+        <PreviewModal
+          image={capturedImage}
+          onRetake={handleRetake}
+          onShare={handleShare}
+          isUploading={isUploading}
+        />
+      )}
+    </div>
+  );
+};
+
+export default BoothPage;
