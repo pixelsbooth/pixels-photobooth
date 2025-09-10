@@ -6,7 +6,7 @@ import VideoRecorder from '../components/VideoRecorder';
 import { applyOverlay } from '../utils/canvasUtils';
 import { supabase } from '../lib/supabaseClient';
 
-const BoothPage = ({ onNavigateToShare, onNavigateToAdmin }) => {
+const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
   const [mode, setMode] = useState('photo');
   const [stream, setStream] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -174,10 +174,10 @@ const BoothPage = ({ onNavigateToShare, onNavigateToAdmin }) => {
           </div>
         </div>
         <button
-          onClick={onNavigateToAdmin}
+          onClick={onNavigateToSetup}
           className="text-sm text-gray-400 hover:text-white"
         >
-          Admin
+          Setup
         </button>
       </header>
 

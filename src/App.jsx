@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import BoothPage from './pages/BoothPage';
 import SharePage from './pages/SharePage';
-import AdminUpload from './pages/AdminUpload';
+import SetupWizard from './pages/SetupWizard';
 
 const App = () => {
   const [currentPage, setCurrentPage] = useState('booth');
@@ -20,8 +20,8 @@ const App = () => {
     setCurrentPage('booth');
   };
 
-  const handleNavigateToAdmin = () => {
-    setCurrentPage('admin');
+  const handleNavigateToSetup = () => {
+    setCurrentPage('setup');
   };
 
   const renderCurrentPage = () => {
@@ -30,7 +30,7 @@ const App = () => {
         return (
           <BoothPage 
             onNavigateToShare={handleNavigateToShare}
-            onNavigateToAdmin={handleNavigateToAdmin}
+            onNavigateToSetup={handleNavigateToSetup}
           />
         );
       case 'share':
@@ -41,9 +41,9 @@ const App = () => {
             onReturnToBooth={handleReturnToBooth}
           />
         );
-      case 'admin':
+      case 'setup':
         return (
-          <AdminUpload 
+          <SetupWizard 
             onReturnToBooth={handleReturnToBooth}
           />
         );
