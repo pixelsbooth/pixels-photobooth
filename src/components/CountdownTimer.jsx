@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import AssistantPrompt from './AssistantPrompt';
 
 const CountdownTimer = ({ initialCount = 3, onCountdownEnd }) => {
   const [count, setCount] = useState(initialCount);
@@ -20,14 +19,11 @@ const CountdownTimer = ({ initialCount = 3, onCountdownEnd }) => {
   }, [count, onCountdownEnd]);
 
   return (
-    <>
-      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-        <div className="text-white text-9xl font-bold animate-pulse">
-          {count > 0 ? count : 'Go!'}
-        </div>
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+      <div className="text-white text-9xl font-bold animate-pulse">
+        {count > 0 ? count : 'Go!'}
       </div>
-      <AssistantPrompt message={count > 0 ? 'Get ready!' : 'Smile!'} />
-    </>
+    </div>
   );
 };
 
