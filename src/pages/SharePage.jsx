@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowLeft, Mail, MessageSquare, Printer } from 'lucide-react';
 import QRCodeDisplay from '../components/QRCodeDisplay';
 import EmailModal from '../components/EmailModal';
+import AssistantPrompt from '../components/AssistantPrompt';
 import { supabase } from '../lib/supabaseClient';
 
 const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'image' }) => {
@@ -9,6 +10,7 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
   const [isEmailLoading, setIsEmailLoading] = React.useState(false);
   const [emailStatus, setEmailStatus] = React.useState('');
   const [sharingOptions, setSharingOptions] = React.useState({ qr: true, email: false, sms: false, print: false });
+  const [currentPrompt, setCurrentPrompt] = React.useState('Scan QR to share');
 
   React.useEffect(() => {
     const fetchSharingOptions = async () => {
@@ -32,9 +34,19 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
     fetchSharingOptions();
   }, []);
 
+  React.useEffect(() => {
+    // Set initial prompt and clear it after 4 seconds
+    const timer = setTimeout(() => {
+      setCurrentPrompt(null);
+    }, 4000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleSendEmail = async (email, message) => {
     setIsEmailLoading(true);
     setEmailStatus('');
+    setCurrentPrompt('Sending email...');
 
     try {
       const { data, error } = await supabase.functions.invoke('send-email', {
@@ -60,17 +72,20 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
       setTimeout(() => {
         setShowEmailModal(false);
         setEmailStatus('');
+        setCurrentPrompt('Email sent successfully!');
       }, 2000);
 
     } catch (error) {
       console.error('Error sending email:', error);
       setEmailStatus('Failed to send email. Please try again.');
+      setCurrentPrompt('Failed to send email. Please try again.');
     } finally {
       setIsEmailLoading(false);
     }
   };
 
   const handlePrint = () => {
+    setCurrentPrompt('Preparing to print...');
     if (mediaType === 'image') {
       const printWindow = window.open('', '_blank');
       printWindow.document.write(`
@@ -83,6 +98,7 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
       `);
       printWindow.document.close();
       printWindow.print();
+      setCurrentPrompt('Print dialog opened!');
     }
   };
 
@@ -189,6 +205,8 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
         onSendEmail={handleSendEmail}
         isLoading={isEmailLoading}
       />
+
+      <AssistantPrompt message={currentPrompt} />
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { Camera, Video, Image } from 'lucide-react';
 import PreviewModal from '../components/PreviewModal';
 import CountdownTimer from '../components/CountdownTimer';
 import VideoRecorder from '../components/VideoRecorder';
+import AssistantPrompt from '../components/AssistantPrompt';
 import { applyOverlay } from '../utils/canvasUtils';
 import { supabase } from '../lib/supabaseClient';
 
@@ -13,12 +14,15 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
   const [capturedImage, setCapturedImage] = useState(null);
   const [showCountdown, setShowCountdown] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [currentPrompt, setCurrentPrompt] = useState('Tap Start to begin');
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
   useEffect(() => {
     if (mode === 'photo') {
       startCamera();
+    } else {
+      setCurrentPrompt('Tap the record button to start!');
     }
     return () => {
       if (stream) {
@@ -26,6 +30,21 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
       }
     };
   }, [mode]);
+
+  useEffect(() => {
+    // Manage prompts based on component state
+    if (mode === 'photo') {
+      if (!stream) {
+        setCurrentPrompt('Waiting for camera...');
+      } else if (!showCountdown && !showPreview && !isUploading) {
+        setCurrentPrompt('Tap the camera button to start!');
+      } else if (isUploading) {
+        setCurrentPrompt('Uploading your photo...');
+      } else if (showPreview) {
+        setCurrentPrompt(null);
+      }
+    }
+  }, [mode, stream, showCountdown, showPreview, isUploading]);
 
   const startCamera = async () => {
     try {
@@ -42,11 +61,13 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
+      setCurrentPrompt('Camera access denied. Please enable permissions.');
     }
   };
 
   const capturePhoto = () => {
     setShowCountdown(true);
+    setCurrentPrompt(null);
   };
 
   const performPhotoCapture = () => {
@@ -65,11 +86,18 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
     setCapturedImage(imageData);
     setShowPreview(true);
     setShowCountdown(false);
+    setCurrentPrompt('Photo captured!');
+    
+    // Clear the prompt after 2 seconds
+    setTimeout(() => {
+      setCurrentPrompt(null);
+    }, 2000);
   };
 
   const handleRetake = () => {
     setShowPreview(false);
     setCapturedImage(null);
+    setCurrentPrompt('Tap the camera button to start!');
   };
 
   const handleShare = async () => {
@@ -107,6 +135,7 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
       onNavigateToShare(overlayedImage, urlData.publicUrl);
     } catch (error) {
       console.error('Error sharing photo:', error);
+      setCurrentPrompt('Failed to share photo. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -114,6 +143,7 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
 
   const handleVideoRecorded = async (videoBlob, videoUrl) => {
     setIsUploading(true);
+    setCurrentPrompt('Uploading your video...');
     try {
       // Upload video to Supabase
       const fileName = `video-${Date.now()}.webm`;
@@ -138,13 +168,14 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
       onNavigateToShare(videoUrl, urlData.publicUrl);
     } catch (error) {
       console.error('Error sharing video:', error);
+      setCurrentPrompt('Failed to share video. Please try again.');
     } finally {
       setIsUploading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="min-h-screen bg-black text-white flex flex-col relative">
       <header className="p-4 flex justify-between items-center">
         <h1 className="text-2xl font-bold">PixelBooth Lite</h1>
         <div className="flex items-center gap-4">
@@ -231,6 +262,8 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
           isUploading={isUploading}
         />
       )}
+
+      <AssistantPrompt message={currentPrompt} />
     </div>
   );
 };
