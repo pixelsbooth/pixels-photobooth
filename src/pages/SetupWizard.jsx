@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Upload } from 'lucide-react';
+import { ArrowLeft, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import AssistantPrompt from '../components/AssistantPrompt';
 
 const SetupWizard = ({ onReturnToBooth }) => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [eventName, setEventName] = useState('');
   const [logoFile, setLogoFile] = useState(null);
   const [sharingOptions, setSharingOptions] = useState({
@@ -14,6 +16,9 @@ const SetupWizard = ({ onReturnToBooth }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
   const [currentEventId, setCurrentEventId] = useState(null);
+  const [currentPrompt, setCurrentPrompt] = useState('Welcome to the setup wizard!');
+
+  const totalSteps = 3;
 
   useEffect(() => {
     const fetchLatestEvent = async () => {
@@ -40,6 +45,23 @@ const SetupWizard = ({ onReturnToBooth }) => {
     fetchLatestEvent();
   }, []);
 
+  useEffect(() => {
+    // Set step-specific prompts
+    switch (currentStep) {
+      case 1:
+        setCurrentPrompt('Enter a memorable name for your event');
+        break;
+      case 2:
+        setCurrentPrompt('Upload your logo to brand the photos (optional)');
+        break;
+      case 3:
+        setCurrentPrompt('Choose how guests can share their photos');
+        break;
+      default:
+        setCurrentPrompt(null);
+    }
+  }, [currentStep]);
+
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (file && file.type.startsWith('image/')) {
@@ -55,6 +77,25 @@ const SetupWizard = ({ onReturnToBooth }) => {
       ...prevOptions,
       [option]: !prevOptions[option],
     }));
+  };
+
+  const handleNextStep = () => {
+    if (currentStep === 1 && !eventName.trim()) {
+      setSaveStatus('Please enter an event name to continue.');
+      return;
+    }
+    
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+      setSaveStatus('');
+    }
+  };
+
+  const handlePreviousStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+      setSaveStatus('');
+    }
   };
 
   const handleSave = async () => {
@@ -134,6 +175,115 @@ const SetupWizard = ({ onReturnToBooth }) => {
       setSaveStatus('Failed to save event configuration.');
     } finally {
       setIsSaving(false);
+      setCurrentPrompt('Configuration saved! Ready to start your event.');
+    }
+  };
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="event-name" className="block text-sm font-medium mb-2">
+                Event Name
+              </label>
+              <input
+                id="event-name"
+                type="text"
+                value={eventName}
+                onChange={(e) => setEventName(e.target.value)}
+                className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                placeholder="Enter event name"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                💡 Tip: Choose a name that guests will recognize, like "Sarah's Wedding" or "Company Holiday Party"
+              </p>
+            </div>
+          </div>
+        );
+      
+      case 2:
+        return (
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="logo-upload" className="block text-sm font-medium mb-2">
+                Logo Upload (Optional)
+              </label>
+              <label htmlFor="logo-upload" className="cursor-pointer">
+                <div className="w-full h-32 bg-gray-800 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center hover:border-gray-500 transition-colors">
+                  <Upload size={24} className="text-gray-400 mb-2" />
+                  <span className="text-sm text-gray-400">
+                    {logoFile ? logoFile.name : 'Click to upload logo'}
+                  </span>
+                </div>
+              </label>
+              <input
+                id="logo-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                💡 Tip: Use a square logo (1:1 ratio) for best results. PNG or JPG formats work best.
+              </p>
+            </div>
+          </div>
+        );
+      
+      case 3:
+        return (
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-medium mb-3">Sharing Options</h2>
+              <div className="space-y-2">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={sharingOptions.qr}
+                    disabled
+                    className="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded"
+                  />
+                  <span className="text-gray-300">QR Code (Always Enabled)</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sharingOptions.email}
+                    onChange={() => handleSharingOptionChange('email')}
+                    className="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded"
+                  />
+                  <span>Email</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sharingOptions.sms}
+                    onChange={() => handleSharingOptionChange('sms')}
+                    className="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded"
+                  />
+                  <span>SMS</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sharingOptions.print}
+                    onChange={() => handleSharingOptionChange('print')}
+                    className="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded"
+                  />
+                  <span>Print</span>
+                </label>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                💡 Tip: Enable email for easy sharing, print for instant keepsakes, and SMS for quick mobile sharing.
+              </p>
+            </div>
+          </div>
+        );
+      
+      default:
+        return null;
     }
   };
 
@@ -147,95 +297,63 @@ const SetupWizard = ({ onReturnToBooth }) => {
           <ArrowLeft size={20} className="mr-2" />
           Back to Booth
         </button>
-        <h1 className="text-2xl font-bold">Setup Wizard</h1>
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Setup Wizard</h1>
+          <p className="text-sm text-gray-400">Step {currentStep} of {totalSteps}</p>
+        </div>
         <div></div>
       </header>
 
-      <div className="max-w-md mx-auto space-y-6">
-        <div>
-          <label htmlFor="event-name" className="block text-sm font-medium mb-2">
-            Event Name
-          </label>
-          <input
-            id="event-name"
-            type="text"
-            value={eventName}
-            onChange={(e) => setEventName(e.target.value)}
-            className="w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-            placeholder="Enter event name"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="logo-upload" className="block text-sm font-medium mb-2">
-            Logo Upload (Optional)
-          </label>
-          <label htmlFor="logo-upload" className="cursor-pointer">
-            <div className="w-full h-32 bg-gray-800 border-2 border-dashed border-gray-600 rounded-lg flex flex-col items-center justify-center hover:border-gray-500 transition-colors">
-              <Upload size={24} className="text-gray-400 mb-2" />
-              <span className="text-sm text-gray-400">
-                {logoFile ? logoFile.name : 'Click to upload logo'}
-              </span>
-            </div>
-          </label>
-          <input
-            id="logo-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-        </div>
-
-        <div>
-          <h2 className="text-lg font-medium mb-3">Sharing Options</h2>
-          <div className="space-y-2">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={sharingOptions.qr}
-                disabled
-                className="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded"
-              />
-              <span className="text-gray-300">QR Code (Always Enabled)</span>
-            </label>
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={sharingOptions.email}
-                onChange={() => handleSharingOptionChange('email')}
-                className="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded"
-              />
-              <span>Email</span>
-            </label>
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={sharingOptions.sms}
-                onChange={() => handleSharingOptionChange('sms')}
-                className="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded"
-              />
-              <span>SMS</span>
-            </label>
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={sharingOptions.print}
-                onChange={() => handleSharingOptionChange('print')}
-                className="mr-2 h-4 w-4 text-blue-600 bg-gray-700 border-gray-600 rounded"
-              />
-              <span>Print</span>
-            </label>
+      <div className="max-w-md mx-auto">
+        {/* Progress Bar */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-gray-400">Progress</span>
+            <span className="text-sm text-gray-400">{Math.round((currentStep / totalSteps) * 100)}%</span>
+          </div>
+          <div className="w-full bg-gray-700 rounded-full h-2">
+            <div 
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+            ></div>
           </div>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={isSaving || !eventName.trim()}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-3 rounded-lg font-medium transition-colors"
-        >
-          {isSaving ? 'Saving...' : 'Save Configuration'}
-        </button>
+        {/* Step Content */}
+        <div className="mb-6">
+          {renderStepContent()}
+        </div>
+
+        {/* Navigation Buttons */}
+        <div className="flex gap-3">
+          {currentStep > 1 && (
+            <button
+              onClick={handlePreviousStep}
+              className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <ChevronLeft size={16} />
+              Previous
+            </button>
+          )}
+          
+          {currentStep < totalSteps ? (
+            <button
+              onClick={handleNextStep}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              Next
+              <ChevronRight size={16} />
+            </button>
+          ) : (
+            <button
+              onClick={handleSave}
+              disabled={isSaving || !eventName.trim()}
+              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white py-3 rounded-lg font-medium transition-colors"
+            >
+              {isSaving ? 'Saving...' : 'Save Configuration'}
+            </button>
+          )}
+        </div>
 
         {saveStatus && (
           <p className={`text-sm text-center ${
@@ -246,6 +364,8 @@ const SetupWizard = ({ onReturnToBooth }) => {
           </p>
         )}
       </div>
+
+      <AssistantPrompt message={currentPrompt} />
     </div>
   );
 };
