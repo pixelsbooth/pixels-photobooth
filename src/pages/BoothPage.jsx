@@ -290,8 +290,6 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
       )}
 
       <AssistantPrompt message={currentPrompt} />
-
-      <AssistantPrompt message={currentPrompt} />
     </div>
   );
 };
