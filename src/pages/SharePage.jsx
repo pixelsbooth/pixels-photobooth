@@ -3,7 +3,6 @@ import { ArrowLeft, Mail, MessageSquare, Printer } from 'lucide-react';
 import QRCodeDisplay from '../components/QRCodeDisplay';
 import EmailModal from '../components/EmailModal';
 import AssistantPrompt from '../components/AssistantPrompt';
-import AssistantPrompt from '../components/AssistantPrompt';
 import { supabase } from '../lib/supabaseClient';
 
 const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'image' }) => {
