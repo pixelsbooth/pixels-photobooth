@@ -4,7 +4,6 @@ import PreviewModal from '../components/PreviewModal';
 import CountdownTimer from '../components/CountdownTimer';
 import VideoRecorder from '../components/VideoRecorder';
 import AssistantPrompt from '../components/AssistantPrompt';
-import AssistantPrompt from '../components/AssistantPrompt';
 import { applyOverlay } from '../utils/canvasUtils';
 import { supabase } from '../lib/supabaseClient';
 
