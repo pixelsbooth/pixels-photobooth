@@ -16,7 +16,6 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
   const [showCountdown, setShowCountdown] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState('Tap Start to begin');
-  const [currentPrompt, setCurrentPrompt] = useState('Tap Start to begin');
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
