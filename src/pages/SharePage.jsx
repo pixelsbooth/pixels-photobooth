@@ -223,8 +223,6 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
       />
 
       <AssistantPrompt message={currentPrompt} />
-
-      <AssistantPrompt message={currentPrompt} />
     </div>
   );
 };
