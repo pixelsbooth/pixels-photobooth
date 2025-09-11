@@ -18,6 +18,7 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup, eventId }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
+  // Start/stop camera depending on mode
   useEffect(() => {
     if (mode === 'photo') {
       startCamera();
@@ -31,6 +32,7 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup, eventId }) => {
     };
   }, [mode]);
 
+  // Dynamic prompts for photo mode
   useEffect(() => {
     if (mode === 'photo') {
       if (!stream) {
@@ -45,6 +47,7 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup, eventId }) => {
     }
   }, [mode, stream, showCountdown, showPreview, isUploading]);
 
+  // Camera access
   const startCamera = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -60,11 +63,13 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup, eventId }) => {
     }
   };
 
+  // Start countdown before capture
   const capturePhoto = () => {
     setShowCountdown(true);
     setCurrentPrompt(null);
   };
 
+  // Capture frame from video
   const performPhotoCapture = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -85,12 +90,14 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup, eventId }) => {
     setTimeout(() => setCurrentPrompt(null), 2000);
   };
 
+  // Retake flow
   const handleRetake = () => {
     setShowPreview(false);
     setCapturedImage(null);
     setCurrentPrompt('Tap the camera button to start!');
   };
 
+  // Upload photo -> save to DB
   const handleShare = async () => {
     if (!capturedImage) return;
 
@@ -102,20 +109,26 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup, eventId }) => {
       const blob = await response.blob();
 
       const fileName = `photo-${Date.now()}.jpg`;
+
+      // Upload to storage bucket
       const { error: uploadError } = await supabase.storage
-        .from('media')
+        .from('media-uploads')
         .upload(fileName, blob);
 
       if (uploadError) throw uploadError;
 
+      // Get public URL
       const { data: urlData } = supabase.storage
-        .from('media')
+        .from('media-uploads')
         .getPublicUrl(fileName);
 
+      // Insert into media table
       await supabase.from('media').insert({
         event_id: eventId,
         file_url: urlData.publicUrl,
         type: 'photo',
+        filters: [],
+        stickers: [],
         created_at: new Date().toISOString()
       });
 
@@ -128,25 +141,29 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup, eventId }) => {
     }
   };
 
+  // Upload video -> save to DB
   const handleVideoRecorded = async (videoBlob, videoUrl) => {
     setIsUploading(true);
     setCurrentPrompt('Uploading your video...');
     try {
       const fileName = `video-${Date.now()}.webm`;
+
       const { error: uploadError } = await supabase.storage
-        .from('media')
+        .from('media-uploads')
         .upload(fileName, videoBlob);
 
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage
-        .from('media')
+        .from('media-uploads')
         .getPublicUrl(fileName);
 
       await supabase.from('media').insert({
         event_id: eventId,
         file_url: urlData.publicUrl,
         type: 'video',
+        filters: [],
+        stickers: [],
         created_at: new Date().toISOString()
       });
 
