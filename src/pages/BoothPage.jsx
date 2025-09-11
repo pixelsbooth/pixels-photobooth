@@ -32,22 +32,6 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
   }, [mode]);
 
   useEffect(() => {
-    // Manage prompts based on component state
-    if (mode === 'photo') {
-      if (!stream) {
-        setCurrentPrompt('Waiting for camera...');
-      } else if (!showCountdown && !showPreview && !isUploading) {
-        setCurrentPrompt('Tap the camera button to start!');
-      } else if (isUploading) {
-        setCurrentPrompt('Uploading your photo...');
-      } else if (showPreview) {
-        setCurrentPrompt(null);
-      }
-    }
-  }, [mode, stream, showCountdown, showPreview, isUploading]);
-
-  useEffect(() => {
-    // Manage prompts based on component state
     if (mode === 'photo') {
       if (!stream) {
         setCurrentPrompt('Waiting for camera...');
@@ -83,7 +67,6 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
   const capturePhoto = () => {
     setShowCountdown(true);
     setCurrentPrompt(null);
-    setCurrentPrompt(null);
   };
 
   const performPhotoCapture = () => {
@@ -108,18 +91,11 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
     setTimeout(() => {
       setCurrentPrompt(null);
     }, 2000);
-    setCurrentPrompt('Photo captured!');
-    
-    // Clear the prompt after 2 seconds
-    setTimeout(() => {
-      setCurrentPrompt(null);
-    }, 2000);
   };
 
   const handleRetake = () => {
     setShowPreview(false);
     setCapturedImage(null);
-    setCurrentPrompt('Tap the camera button to start!');
     setCurrentPrompt('Tap the camera button to start!');
   };
 
@@ -135,21 +111,22 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
       const response = await fetch(overlayedImage);
       const blob = await response.blob();
       
-      // Upload to Supabase
+      // Upload to Supabase storage
       const fileName = `photo-${Date.now()}.jpg`;
-      const { data, error } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('photos')
         .upload(fileName, blob);
 
-      if (error) throw error;
+      if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: urlData } = supabase.storage
         .from('photos')
         .getPublicUrl(fileName);
 
-      // Save photo record to database
-      await supabase.from('photos').insert({
+      // Save photo record to single "media" table
+      await supabase.from('media').insert({
+        type: 'photo',
         filename: fileName,
         public_url: urlData.publicUrl,
         created_at: new Date().toISOString()
@@ -159,7 +136,6 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
     } catch (error) {
       console.error('Error sharing photo:', error);
       setCurrentPrompt('Failed to share photo. Please try again.');
-      setCurrentPrompt('Failed to share photo. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -168,23 +144,23 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
   const handleVideoRecorded = async (videoBlob, videoUrl) => {
     setIsUploading(true);
     setCurrentPrompt('Uploading your video...');
-    setCurrentPrompt('Uploading your video...');
     try {
-      // Upload video to Supabase
+      // Upload video to Supabase storage
       const fileName = `video-${Date.now()}.webm`;
-      const { data, error } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('videos')
         .upload(fileName, videoBlob);
 
-      if (error) throw error;
+      if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: urlData } = supabase.storage
         .from('videos')
         .getPublicUrl(fileName);
 
-      // Save video record to database
-      await supabase.from('videos').insert({
+      // Save video record to single "media" table
+      await supabase.from('media').insert({
+        type: 'video',
         filename: fileName,
         public_url: urlData.publicUrl,
         created_at: new Date().toISOString()
@@ -193,7 +169,6 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
       onNavigateToShare(videoUrl, urlData.publicUrl);
     } catch (error) {
       console.error('Error sharing video:', error);
-      setCurrentPrompt('Failed to share video. Please try again.');
       setCurrentPrompt('Failed to share video. Please try again.');
     } finally {
       setIsUploading(false);
