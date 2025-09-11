@@ -7,7 +7,7 @@ import AssistantPrompt from '../components/AssistantPrompt';
 import { applyOverlay } from '../utils/canvasUtils';
 import { supabase } from '../lib/supabaseClient';
 
-const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
+const BoothPage = ({ onNavigateToShare, onNavigateToSetup, eventId }) => {
   const [mode, setMode] = useState('photo');
   const [stream, setStream] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -48,11 +48,7 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
   const startCamera = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          width: 1280, 
-          height: 720,
-          facingMode: 'user'
-        }
+        video: { width: 1280, height: 720, facingMode: 'user' }
       });
       setStream(mediaStream);
       if (videoRef.current) {
@@ -78,19 +74,15 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
     const imageData = canvas.toDataURL('image/jpeg', 0.9);
     setCapturedImage(imageData);
     setShowPreview(true);
     setShowCountdown(false);
     setCurrentPrompt('Photo captured!');
-    
-    // Clear the prompt after 2 seconds
-    setTimeout(() => {
-      setCurrentPrompt(null);
-    }, 2000);
+
+    setTimeout(() => setCurrentPrompt(null), 2000);
   };
 
   const handleRetake = () => {
@@ -104,31 +96,26 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
 
     setIsUploading(true);
     try {
-      // Apply overlay to the captured image
       const overlayedImage = await applyOverlay(capturedImage);
-      
-      // Convert to blob for upload
+
       const response = await fetch(overlayedImage);
       const blob = await response.blob();
-      
-      // Upload to Supabase storage
+
       const fileName = `photo-${Date.now()}.jpg`;
       const { error: uploadError } = await supabase.storage
-        .from('photos')
+        .from('media')
         .upload(fileName, blob);
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: urlData } = supabase.storage
-        .from('photos')
+        .from('media')
         .getPublicUrl(fileName);
 
-      // Save photo record to single "media" table
       await supabase.from('media').insert({
+        event_id: eventId,
+        file_url: urlData.publicUrl,
         type: 'photo',
-        filename: fileName,
-        public_url: urlData.publicUrl,
         created_at: new Date().toISOString()
       });
 
@@ -145,24 +132,21 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
     setIsUploading(true);
     setCurrentPrompt('Uploading your video...');
     try {
-      // Upload video to Supabase storage
       const fileName = `video-${Date.now()}.webm`;
       const { error: uploadError } = await supabase.storage
-        .from('videos')
+        .from('media')
         .upload(fileName, videoBlob);
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: urlData } = supabase.storage
-        .from('videos')
+        .from('media')
         .getPublicUrl(fileName);
 
-      // Save video record to single "media" table
       await supabase.from('media').insert({
+        event_id: eventId,
+        file_url: urlData.publicUrl,
         type: 'video',
-        filename: fileName,
-        public_url: urlData.publicUrl,
         created_at: new Date().toISOString()
       });
 
@@ -184,9 +168,7 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
             <button
               onClick={() => setMode('photo')}
               className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
-                mode === 'photo' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-400 hover:text-white'
+                mode === 'photo' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
               <Image size={16} />
@@ -195,9 +177,7 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
             <button
               onClick={() => setMode('video')}
               className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
-                mode === 'video' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-400 hover:text-white'
+                mode === 'video' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
               <Video size={16} />
@@ -223,16 +203,10 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
               muted
               className="rounded-lg max-w-full max-h-[60vh] object-cover"
             />
-            <canvas
-              ref={canvasRef}
-              className="hidden"
-            />
+            <canvas ref={canvasRef} className="hidden" />
           </div>
         ) : (
-          <VideoRecorder 
-            onRecordingComplete={handleVideoRecorded}
-            maxDuration={30}
-          />
+          <VideoRecorder onRecordingComplete={handleVideoRecorded} maxDuration={30} />
         )}
       </div>
 
@@ -248,12 +222,7 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
         </div>
       )}
 
-      {showCountdown && (
-        <CountdownTimer
-          initialCount={3}
-          onCountdownEnd={performPhotoCapture}
-        />
-      )}
+      {showCountdown && <CountdownTimer initialCount={3} onCountdownEnd={performPhotoCapture} />}
 
       {showPreview && (
         <PreviewModal
