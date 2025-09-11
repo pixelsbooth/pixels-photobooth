@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, RotateCcw, Share2 } from 'lucide-react';
 
-const PreviewModal = ({ image, onRetake, onShare, isUploading }) => {
+const PreviewModal = ({ image, mediaType = 'photo', onRetake, onShare, isUploading }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
       <div className="max-w-2xl w-full">
@@ -17,11 +17,22 @@ const PreviewModal = ({ image, onRetake, onShare, isUploading }) => {
           </div>
           
           <div className="p-4">
-            <img
-              src={image}
-              alt="Captured preview"
-              className="w-full rounded-lg"
-            />
+            {(mediaType === 'video' || mediaType === 'gif' || mediaType === 'boomerang') ? (
+              <video
+                src={image}
+                controls
+                autoPlay
+                muted
+                loop
+                className="w-full rounded-lg"
+              />
+            ) : (
+              <img
+                src={image}
+                alt="Captured preview"
+                className="w-full rounded-lg"
+              />
+            )}
           </div>
           
           <div className="p-4 border-t border-gray-700 flex gap-4">

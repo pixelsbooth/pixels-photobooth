@@ -11,7 +11,6 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
   const [emailStatus, setEmailStatus] = React.useState('');
   const [sharingOptions, setSharingOptions] = React.useState({ qr: true, email: false, sms: false, print: false });
   const [currentPrompt, setCurrentPrompt] = React.useState('Scan QR to share');
-  const [currentPrompt, setCurrentPrompt] = React.useState('Scan QR to share');
 
   React.useEffect(() => {
     const fetchSharingOptions = async () => {
@@ -44,19 +43,9 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
     return () => clearTimeout(timer);
   }, []);
 
-  React.useEffect(() => {
-    // Set initial prompt and clear it after 4 seconds
-    const timer = setTimeout(() => {
-      setCurrentPrompt(null);
-    }, 4000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
   const handleSendEmail = async (email, message) => {
     setIsEmailLoading(true);
     setEmailStatus('');
-    setCurrentPrompt('Sending email...');
     setCurrentPrompt('Sending email...');
 
     try {
@@ -84,13 +73,11 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
         setShowEmailModal(false);
         setEmailStatus('');
         setCurrentPrompt('Email sent successfully!');
-        setCurrentPrompt('Email sent successfully!');
       }, 2000);
 
     } catch (error) {
       console.error('Error sending email:', error);
       setEmailStatus('Failed to send email. Please try again.');
-      setCurrentPrompt('Failed to send email. Please try again.');
       setCurrentPrompt('Failed to send email. Please try again.');
     } finally {
       setIsEmailLoading(false);
@@ -99,8 +86,7 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
 
   const handlePrint = () => {
     setCurrentPrompt('Preparing to print...');
-    setCurrentPrompt('Preparing to print...');
-    if (mediaType === 'image') {
+    if (mediaType === 'image' || mediaType === 'photo') { // Allow printing for photo/image types
       const printWindow = window.open('', '_blank');
       printWindow.document.write(`
         <html>
@@ -113,7 +99,8 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
       printWindow.document.close();
       printWindow.print();
       setCurrentPrompt('Print dialog opened!');
-      setCurrentPrompt('Print dialog opened!');
+    } else {
+      setCurrentPrompt('Printing is only available for photos.');
     }
   };
 
@@ -133,7 +120,7 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
 
       <div className="flex flex-col lg:flex-row gap-8 items-center justify-center max-w-6xl mx-auto">
         <div className="flex-1 max-w-md">
-          {mediaType === 'video' ? (
+          {(mediaType === 'video' || mediaType === 'gif' || mediaType === 'boomerang') ? (
             <video
               src={capturedPhoto}
               controls
@@ -145,7 +132,7 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
           ) : (
             <img
               src={capturedPhoto}
-              alt="Captured photo"
+              alt="Captured media"
               className="rounded-lg w-full shadow-lg"
             />
           )}
@@ -155,7 +142,7 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
           <h2 className="text-2xl font-bold mb-4">Scan to Download</h2>
           <QRCodeDisplay url={sharedUrl} />
           <p className="text-gray-400 mt-4 text-sm">
-            Scan this QR code with your phone to download your {mediaType === 'video' ? 'video' : 'photo'}
+            Scan this QR code with your phone to download your {mediaType === 'video' ? 'video' : mediaType === 'gif' ? 'GIF' : mediaType === 'boomerang' ? 'Boomerang' : 'photo'}
           </p>
           <div className="mt-6 p-4 bg-gray-800 rounded-lg">
             <p className="text-xs text-gray-300 break-all">
@@ -184,7 +171,7 @@ const SharePage = ({ capturedPhoto, sharedUrl, onReturnToBooth, mediaType = 'ima
               </button>
             )}
             
-            {sharingOptions.print && mediaType === 'image' && (
+            {sharingOptions.print && (mediaType === 'image' || mediaType === 'photo') && (
               <button
                 onClick={handlePrint}
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"

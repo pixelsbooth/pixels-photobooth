@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import AssistantPrompt from './AssistantPrompt';
-import AssistantPrompt from './AssistantPrompt';
 
 const CountdownTimer = ({ initialCount = 3, onCountdownEnd }) => {
   const [count, setCount] = useState(initialCount);
@@ -26,11 +25,8 @@ const CountdownTimer = ({ initialCount = 3, onCountdownEnd }) => {
         <div className="text-white text-9xl font-bold animate-pulse">
           {count > 0 ? count : 'Go!'}
         </div>
-          {count > 0 ? count : 'Go!'}
-        </div>
       </div>
       <AssistantPrompt message={count > 0 ? 'Get ready!' : 'Smile!'} />
-    </>
     </>
   );
 };
