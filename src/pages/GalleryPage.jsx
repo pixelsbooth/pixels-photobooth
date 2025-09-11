@@ -1,113 +1,69 @@
-import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
-export default function GalleryPage({ eventId }) {
-  const [media, setMedia] = useState([]);
-  const [settings, setSettings] = useState(null);
-  const [event, setEvent] = useState(null);
+const GalleryPage = () => {
+  const [mediaItems, setMediaItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchGallery = async () => {
+    const fetchMedia = async () => {
+      setLoading(true);
       try {
-        // 1. Fetch event settings
-        const { data: galleryData, error: galleryError } = await supabase
-          .from("gallery_settings")
-          .select("*")
-          .eq("event_id", eventId)
-          .single();
-        if (galleryError) throw galleryError;
-        setSettings(galleryData);
+        const { data, error } = await supabase
+          .from('media')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-        // 2. Fetch event details (theme + watermark)
-        const { data: eventData, error: eventError } = await supabase
-          .from("events")
-          .select("theme_color, watermark_url")
-          .eq("id", eventId)
-          .single();
-        if (eventError) throw eventError;
-        setEvent(eventData);
-
-        // 3. Fetch media
-        const { data: mediaData, error: mediaError } = await supabase
-          .from("media")
-          .select("*")
-          .eq("event_id", eventId)
-          .order("created_at", { ascending: false });
-        if (mediaError) throw mediaError;
-        setMedia(mediaData || []);
+        if (error) throw error;
+        setMediaItems(data || []);
       } catch (err) {
-        console.error("Error loading gallery:", err.message);
+        console.error('Error fetching media:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGallery();
-  }, [eventId]);
+    fetchMedia();
+  }, []);
 
-  if (loading) return <p className="text-center p-6">Loading gallery...</p>;
-  if (!settings) return <p className="text-center p-6">No gallery settings found for this event.</p>;
+  if (loading) {
+    return <p className="text-center text-gray-400 mt-10">Loading gallery...</p>;
+  }
+
+  if (mediaItems.length === 0) {
+    return <p className="text-center text-gray-400 mt-10">No media found.</p>;
+  }
 
   return (
     <div className="p-6">
-      {/* Header with theme color */}
-      <h1
-        className="text-2xl font-bold mb-6 p-3 rounded-lg text-white"
-        style={{ backgroundColor: event?.theme_color || "#111827" }}
-      >
-        Event Gallery
-      </h1>
-
-      <div
-        className={`grid gap-4 ${
-          settings.layout === "grid"
-            ? "grid-cols-3"
-            : "grid-cols-2 md:grid-cols-4"
-        }`}
-      >
-        {media.map((item) => (
-          <div key={item.id} className="relative rounded-lg overflow-hidden shadow">
-            {item.type === "video" ? (
-              <video
-                src={item.file_url}
-                controls
+      <h2 className="text-xl font-bold text-white mb-4">Gallery</h2>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {mediaItems.map((item) => (
+          <div
+            key={item.id}
+            className="bg-gray-900 rounded-lg overflow-hidden shadow"
+          >
+            {item.type === 'photo' ? (
+              <img
+                src={item.public_url}
+                alt={item.filename}
                 className="w-full h-48 object-cover"
               />
             ) : (
-              <img
-                src={item.file_url}
-                alt={item.type}
+              <video
+                src={item.public_url}
+                controls
                 className="w-full h-48 object-cover"
               />
             )}
-
-            {/* Watermark overlay (only for images) */}
-            {event?.watermark_url && item.type === "photo" && (
-              <img
-                src={event.watermark_url}
-                alt="Watermark"
-                className="absolute bottom-2 right-2 w-16 opacity-70"
-              />
-            )}
-
-            {/* Download button if allowed */}
-            {settings.allow_downloads && (
-              <a
-                href={item.file_url}
-                download
-                className="absolute top-2 right-2 px-2 py-1 text-xs rounded shadow"
-                style={{
-                  backgroundColor: event?.theme_color || "#111827",
-                  color: "white",
-                }}
-              >
-                Download
-              </a>
-            )}
+            <div className="p-2 text-xs text-gray-400">
+              {new Date(item.created_at).toLocaleString()}
+            </div>
           </div>
         ))}
       </div>
     </div>
   );
-}
+};
+
+export default GalleryPage;
