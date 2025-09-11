@@ -81,7 +81,6 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
     } catch (error) {
       console.error('Error accessing camera:', error);
       setCurrentPrompt('Camera access denied. Please enable permissions.');
-      setCurrentPrompt('Camera access denied. Please enable permissions.');
     }
   };
 
