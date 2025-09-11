@@ -68,14 +68,22 @@ export default function GalleryPage({ eventId }) {
       >
         {media.map((item) => (
           <div key={item.id} className="relative rounded-lg overflow-hidden shadow">
-            <img
-              src={item.file_url}
-              alt={item.type}
-              className="w-full h-48 object-cover"
-            />
+            {item.type === "video" ? (
+              <video
+                src={item.file_url}
+                controls
+                className="w-full h-48 object-cover"
+              />
+            ) : (
+              <img
+                src={item.file_url}
+                alt={item.type}
+                className="w-full h-48 object-cover"
+              />
+            )}
 
-            {/* Watermark overlay */}
-            {event?.watermark_url && (
+            {/* Watermark overlay (only for images) */}
+            {event?.watermark_url && item.type === "photo" && (
               <img
                 src={event.watermark_url}
                 alt="Watermark"
