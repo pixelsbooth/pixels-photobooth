@@ -25,8 +25,6 @@ const BoothPage = ({ onNavigateToShare, onNavigateToSetup }) => {
       startCamera();
     } else {
       setCurrentPrompt('Tap the record button to start!');
-    } else {
-      setCurrentPrompt('Tap the record button to start!');
     }
     return () => {
       if (stream) {
